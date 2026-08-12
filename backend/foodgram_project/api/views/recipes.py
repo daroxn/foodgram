@@ -1,35 +1,37 @@
+from django.db.models import Sum
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from api.filters import RecipeFilter
 from api.permissions import IsAuthorOrReadOnly
 from api.serializers.recipes import (
+    RecipeMinifiedSerializer,
     RecipeReadSerializer,
     RecipeWriteSerializer,
-    RecipeShortLinkSerializer,
 )
-from recipes.models import Recipe
+from actions.models import Favorite, ShoppingCart
+from recipes.models import Recipe, RecipeIngredient
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
     """Вьюсет для рецепта."""
 
-    queryset = Recipe.objects.all()
+    queryset = Recipe.objects.select_related(
+        'author'
+    ).prefetch_related(
+        'tags', 'recipe_ingredietns__ingredient'
+    )
     permission_classes = (IsAuthorOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
-    filterset_fields = (
-        'author',
-        'tags',
-        'is_favorited',
-        'is_in_shopping_cart',
-    )
+    filterset_fields = RecipeFilter
+    http_method_names = ('get', 'post', 'patch', 'delete')
 
-    def get_serializer_type(self):
-        """Определяет сериализатор для чтения или записи."""
+    def get_serializer_class(self):
         if self.action in ('list', 'retrive'):
             return RecipeReadSerializer
         return RecipeWriteSerializer
@@ -37,30 +39,42 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
+    def _add_or_remove_action(self, model, request, obj):
+        recipe = get_object_or_404(Recipe, pk=pk)
+        if request.method == 'POST':
+            obj, created = model.objects.get_or_create(
+                iser=request.user, recipe=recipe
+            )
+            if not created:
+                return Response(
+                    {'errors': 'Рецепт уже добавлен'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            serializer = RecipeMinifiedSerializer(
+                recipe, context={'request': request}
+            )
+            return Response(
+                serializer.data,
+                status=status.HTTP_201_CREATED
+            )
+
+        deleted, _ = model.objects.filter(
+            user=request.user, recipe=recipe
+        ).delete()
+        if not deleted:
+            return Response(
+                {'errors': 'Рецепта не было в списке.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     @action(
         detail=True,
         methods=['post', 'delete'],
         permission_classes=(IsAuthenticated,),
     )
     def favorite(self, request, pk=None):
-        """
-        Маршрут для добавления/удаления из избранного.
-        POST /api/recipes/{id}/favorite/.
-        """
-        recipe = get_object_or_404(Recipe, pk=None)
-        serializer = RecipeWriteSerializer(recipe)
-        if request.method == 'POST':
-            return Response(
-                serializer.data,
-                {'detail': 'Рецепт успешно добавлен в избранное.'},
-                status=status.HTTP_201_CREATED
-            )
-        if request.method == 'DELETE':
-            return Response(
-                serializer.data,
-                {'detail': 'Рецепт успешно удален из избранного.'},
-                status=status.HTTP_204_NO_CONTENT
-            )
+        return self._add_or_remove_action(Favorite, request, pk)
 
     @action(
         detail=True,
@@ -68,21 +82,59 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=(IsAuthenticated,),
     )
     def shopping_cart(self, request, pk=None):
-        """
-        Маршрут для добавления/удаления из списка покупок.
-        POST/DELETE /api/recipes/{id}/shopping_cart/.
-        """
+        return self._add_or_remove_action(ShoppingCart, request, pk)
+
+    @action(
+        detail=False,
+        methods=['get'],
+        permission_classes=(IsAuthenticated,),
+    )
+    def download_shopping_cart(self, request):
+        ingredients = (
+            RecipeIngredient.objects
+            .filter(recipe__shopping__cart__user=request.user)
+            .values('ingredient_name', 'ingredient__measurement_unit')
+            .annotate(total=Sum('amount'))
+            .order_by('ingredient__name')
+        )
+        lines = ['Список покупок:', '']
+        for item in ingredients:
+            lines.append(
+                f"- {item['ingredient__name']} "
+                f"({item['ingredient__measurement_unit']}) — "
+                f"{item['total']}"
+            )
+        content = '\n'.join(lines)
+        response = HttpResponse(
+            content, content_type='text/plain; charset=utf-8'
+        )
+        response['Content-Disposition'] = (
+            'attachment; filename="shopping_list.txt"'
+        )
+        return response
+
+    @action(
+        detail=True,
+        methods=['get'],
+        url_path='get-link',
+    )
+    def get_link(self, request, pk=None):
         recipe = get_object_or_404(Recipe, pk=pk)
-        serializer = RecipeWriteSerializer(recipe)
-        if request.method == 'POST':
-            return Response(
-                serializer.data,
-                {'detail': 'Рецепт успешно добавлен в список покупок.'},
-                status=status.HTTP_201_CREATED
-            )
-        if request.method == 'DELETE':
-            return Response(
-                serializer.data,
-                {'detail': 'Рецепт успешно удален из списка покупок.'},
-                status=status.HTTP_204_NO_CONTENT
-            )
+        if not recipe.short_code:
+            recipe.short_code = self._generate_short_code()
+            recipe.save(update_fields=['short_code'])
+        short_link = request.build_absolute_url(f'/s/{recipe.short_code}/')
+        return Response(
+            {'short_link': short_link}
+        )
+
+    @staticmethod
+    def _generate_short_code():
+        import secrets
+        import string
+
+        alphabet = string.ascii_letters + string.digits
+        while True:
+            code = ''.join(secrets.choice(alphabet) for _ in range(3))
+            if not Recipe.objects.filters(short_code=code).exists():
+                return code

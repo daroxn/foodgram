@@ -8,10 +8,7 @@ class IsAdmin(permissions.BasePermission):
     """
 
     def has_permission(self, request, view):
-        return (
-            request.user.is_authenticated
-            and request.user.is_admin
-        )
+        return request.user.is_authenticated
 
 
 class IsAdminOrReadOnly(permissions.BasePermission):
@@ -22,10 +19,7 @@ class IsAdminOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return True
-        return (
-            request.user.is_authenticated
-            and request.user.is_admin
-        )
+        return request.user.is_authenticated
 
 
 class IsAuthorOrReadOnly(permissions.BasePermission):
@@ -37,27 +31,3 @@ class IsAuthorOrReadOnly(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
         return obj.author == request.user
-
-
-class IsAuthorModeratorAdminOrReadOnly(permissions.BasePermission):
-    """
-    Предназначен для ....:
-    Чтение всем, писать комменты/отзывы может только авторизованный,
-    Удалять и редактировать могут только автор, модераторы и админы.
-    """
-    def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return request.user.is_authenticated
-
-    def has_object_permission(self, request, view, obj):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-
-        return (
-            request.user.is_authenticated and (
-                obj.author == request.user
-                or request.user.is_moderator
-                or request.user.is_admin
-            )
-        )
