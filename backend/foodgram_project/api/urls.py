@@ -1,8 +1,7 @@
-from django.contrib import admin
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from api.views.auth import LogoutView, CustomAuthToken
+from api.views.auth import CustomAuthToken, LogoutView
 from api.views.ingredients import IngredientViewSet
 from api.views.recipes import RecipeViewSet
 from api.views.tags import TagViewSet
@@ -15,8 +14,7 @@ router.register('recipes', RecipeViewSet, basename='recipes'),
 router.register('users', UserViewSet, basename='users')
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/', include(router.urls)),
-    path('api/auth/token/login', CustomAuthToken.as_view()),
-    path('api/auth/token/logout', LogoutView.as_view()),
+    path('', include(router.urls)),
+    path('auth/token/login', CustomAuthToken.as_view(), name='login'),
+    path('auth/token/logout', LogoutView.as_view(), name='logout'),
 ]

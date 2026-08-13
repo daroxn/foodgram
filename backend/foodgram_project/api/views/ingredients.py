@@ -7,7 +7,7 @@ from api.serializers.ingredients import IngredientSerializer
 from recipes.models import Ingredient
 
 
-class TagViewSet(mixins.ListModelMixin,
+class IngredientViewSet(mixins.ListModelMixin,
                  mixins.RetrieveModelMixin,
                  viewsets.GenericViewSet):
     """Вьюсет для действий над ингредиентами"""
@@ -17,4 +17,4 @@ class TagViewSet(mixins.ListModelMixin,
     permission_classes = (AllowAny,)
     pagination_class = None
     filter_backends = (DjangoFilterBackend,)
-    filterset_fields = IngredientFilter
+    filterset_class = IngredientFilter

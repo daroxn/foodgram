@@ -65,7 +65,7 @@ class UserWithRecipesSerializer(UserSerializer):
         fields = UserSerializer.Meta.fields + ('recipes', 'recipes_count')
 
     def get_recipes(self, obj):
-        from api.serializers.recipes import RecipeMinifiedSerializer
+        from api.serializers.recipes import RecipeMinifieldSerializer
 
         request = self.context.get('request')
         recipes_limit = None
@@ -74,7 +74,7 @@ class UserWithRecipesSerializer(UserSerializer):
         queryset = obj.recipes.all()
         if recipes_limit:
             queryset = queryset[:int(recipes_limit)]
-        return RecipeMinifiedSerializer(
+        return RecipeMinifieldSerializer(
             queryset,
             many=True,
             context=self.context,

@@ -45,7 +45,7 @@ class RecipeIngredientWriteSerializer(serializers.Serializer):
         return value
 
 
-class RecipeMinifiedSerializer(serializers.ModelSerializer):
+class RecipeMinifieldSerializer(serializers.ModelSerializer):
     """Сериализатор короткого представления рецепта."""
 
     class Meta:

@@ -1,3 +1,42 @@
 from django.contrib import admin
 
-# Register your models here.
+from actions.models import Favorite, ShoppingCart, Subscription
+
+
+@admin.register(Subscription)
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'user',
+        'author'
+    )
+    search_fields = (
+        'user__username',
+        'author__username'
+    )
+
+
+@admin.register(Favorite)
+class FavoriteAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'user',
+        'recipe'
+    )
+    search_fields = (
+        'user__username',
+        'recipe__name'
+    )
+
+
+@admin.register(ShoppingCart)
+class ShoppingCartAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'user',
+        'recipe'
+    )
+    search_fields = (
+        'user__username',
+        'recipe__name'
+    )

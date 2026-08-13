@@ -1,7 +1,7 @@
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
-from django.filters.rest_framework import DjangoFilterBackend
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from api.filters import RecipeFilter
 from api.permissions import IsAuthorOrReadOnly
 from api.serializers.recipes import (
-    RecipeMinifiedSerializer,
+    RecipeMinifieldSerializer,
     RecipeReadSerializer,
     RecipeWriteSerializer,
 )
@@ -28,7 +28,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     permission_classes = (IsAuthorOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
-    filterset_fields = RecipeFilter
+    filterset_class = RecipeFilter
     http_method_names = ('get', 'post', 'patch', 'delete')
 
     def get_serializer_class(self):
@@ -50,7 +50,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     {'errors': 'Рецепт уже добавлен'},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            serializer = RecipeMinifiedSerializer(
+            serializer = RecipeMinifieldSerializer(
                 recipe, context={'request': request}
             )
             return Response(
@@ -138,3 +138,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
             code = ''.join(secrets.choice(alphabet) for _ in range(3))
             if not Recipe.objects.filters(short_code=code).exists():
                 return code
+
+
+def short_link_redirect(request, code):
+    """Редирект при переходе по сокращенной ссылке."""
+    recipe = get_object_or_404(Recipe, short_code=code)
+    return redirect(f'/recipes/{recipe.id}/')
