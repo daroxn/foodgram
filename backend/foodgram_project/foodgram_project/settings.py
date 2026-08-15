@@ -14,7 +14,12 @@ AUTH_USER_MODEL = 'accounts.User'
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = os.getenv(
-    'ALLOWED HOSTS', '127.0.0.1, localhosts'
+    'ALLOWED_HOSTS', '127.0.0.1,localhost'
+).split(',')
+
+CSRF_TRUSTED_ORIGINS = os.getenv(
+    'CSRF_TRUSTED_ORIGINS',
+    'http://127.0.0.1,http://localhost',
 ).split(',')
 
 
