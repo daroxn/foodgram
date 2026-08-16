@@ -15,6 +15,6 @@ router.register('users', UserViewSet, basename='users')
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('auth/token/login', CustomAuthToken.as_view(), name='login'),
-    path('auth/token/logout', LogoutView.as_view(), name='logout'),
+    path('auth/token/login/', CustomAuthToken.as_view(), name='login'),
+    path('auth/token/logout/', LogoutView.as_view(), name='logout'),
 ]

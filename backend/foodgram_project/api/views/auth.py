@@ -1,4 +1,5 @@
-from rest_framework import status
+from django.contrib.auth import authenticate
+from rest_framework import serializers, status
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.permissions import IsAuthenticated
@@ -6,8 +7,36 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 
+class EmailAuthTokenSerializer(serializers.Serializer):
+    """Проверка учётных данных по email и паролю."""
+
+    email = serializers.EmailField()
+    password = serializers.CharField(
+        style={'input_type': 'password'},
+        trim_whitespace=False,
+    )
+
+    def validate(self, attrs):
+        email = attrs.get('email')
+        password = attrs.get('password')
+        user = authenticate(
+            request=self.context.get('request'),
+            username=email,
+            password=password,
+        )
+        if not user:
+            raise serializers.ValidationError(
+                'Неверный email или пароль.',
+                code='authorization',
+            )
+        attrs['user'] = user
+        return attrs
+
+
 class CustomAuthToken(ObtainAuthToken):
     """Получение токена комбинацией email + пароль."""
+
+    serializer_class = EmailAuthTokenSerializer
 
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(
