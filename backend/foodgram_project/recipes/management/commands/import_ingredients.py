@@ -11,6 +11,7 @@ class Command(BaseCommand):
     """Команда для импорта ингредиентов."""
 
     def add_arguments(self, parser):
+        """Добавить аргумент пути к JSON-файлу."""
         parser.add_argument(
             '--path',
             type=str,
@@ -19,6 +20,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        """Импортировать ингредиенты из JSON-файла в базу данных."""
         default_path = (
             settings.BASE_DIR.parent.parent / 'data' / 'ingredients.json'
         )

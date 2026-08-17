@@ -1,3 +1,5 @@
+"""Кастомные поля сериализаторов."""
+
 import base64
 import uuid
 
@@ -9,6 +11,7 @@ class Base64ImageField(serializers.ImageField):
     """Поле для обработки изображений в формате Base64."""
 
     def to_internal_value(self, data):
+        """Декодирование изображения из Base64."""
         if isinstance(data, str) and data.startswith('data:image'):
             format_value, base64_value = data.split(';base64,')
             extention = format_value.split('/')[-1]

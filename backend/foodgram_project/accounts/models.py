@@ -1,3 +1,5 @@
+"""Модели для приложения accounts."""
+
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
 from django.db import models
@@ -36,9 +38,12 @@ class User(AbstractUser):
     REQUIRED_FIELDS = ('username', 'first_name', 'last_name')
 
     class Meta:
+        """Метаданные модели пользователя."""
+
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
         ordering = ('id',)
 
     def __str__(self):
+        """Строковое представление пользователя."""
         return self.username

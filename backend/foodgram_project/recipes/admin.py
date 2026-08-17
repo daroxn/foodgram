@@ -1,3 +1,5 @@
+"""Настройки админки для приложения recipes."""
+
 from django.contrib import admin
 
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
@@ -13,6 +15,8 @@ class RecipeIngredientImage(admin.TabularInline):
 
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
+    """Админка ингредиентов."""
+
     list_display = (
         'id',
         'name',
@@ -24,6 +28,8 @@ class IngredientAdmin(admin.ModelAdmin):
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
+    """Админка тегов."""
+
     list_display = (
         'id',
         'name',
@@ -35,6 +41,8 @@ class TagAdmin(admin.ModelAdmin):
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
+    """Админка рецептов."""
+
     list_display = (
         'id',
         'name',
@@ -53,4 +61,5 @@ class RecipeAdmin(admin.ModelAdmin):
 
     @admin.display(description='В избранном (раз)')
     def favorites_count(self, obj):
+        """Число добавлений рецепта в избранное."""
         return obj.favorites_count()

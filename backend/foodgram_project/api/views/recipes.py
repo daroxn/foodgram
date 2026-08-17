@@ -1,3 +1,5 @@
+"""Представления для рецептов."""
+
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -32,14 +34,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
     http_method_names = ('get', 'post', 'patch', 'delete')
 
     def get_serializer_class(self):
+        """Возвратить сериализатор в зависимости от действия."""
         if self.action in ('list', 'retrive'):
             return RecipeReadSerializer
         return RecipeWriteSerializer
 
     def perform_create(self, serializer):
+        """Сохранить рецепт с автором из запроса."""
         serializer.save(author=self.request.user)
 
     def _add_or_remove_action(self, model, request, obj):
+        """Добавить или удалить рецепт из связанного списка."""
         recipe = get_object_or_404(Recipe, pk=pk)
         if request.method == 'POST':
             obj, created = model.objects.get_or_create(
@@ -74,6 +79,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=(IsAuthenticated,),
     )
     def favorite(self, request, pk=None):
+        """Добавить или удалить рецепт из избранного."""
         return self._add_or_remove_action(Favorite, request, pk)
 
     @action(
@@ -82,6 +88,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=(IsAuthenticated,),
     )
     def shopping_cart(self, request, pk=None):
+        """Добавить или удалить рецепт из корзины покупок."""
         return self._add_or_remove_action(ShoppingCart, request, pk)
 
     @action(
@@ -90,6 +97,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=(IsAuthenticated,),
     )
     def download_shopping_cart(self, request):
+        """Сформировать и скачать файл списка покупок."""
         ingredients = (
             RecipeIngredient.objects
             .filter(recipe__shopping__cart__user=request.user)
@@ -119,6 +127,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         url_path='get-link',
     )
     def get_link(self, request, pk=None):
+        """Возвратить короткую ссылку на рецепт."""
         recipe = get_object_or_404(Recipe, pk=pk)
         if not recipe.short_code:
             recipe.short_code = self._generate_short_code()
@@ -130,6 +139,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @staticmethod
     def _generate_short_code():
+        """Сгенерировать уникальный короткий код из трёх символов."""
         import secrets
         import string
 

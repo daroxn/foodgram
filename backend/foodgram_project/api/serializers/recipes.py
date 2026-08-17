@@ -1,3 +1,5 @@
+"""Сериализаторы рецептов."""
+
 from rest_framework import serializers
 
 from api.serializers.fields import Base64ImageField
@@ -22,6 +24,8 @@ class RecipeIngredientReadSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
+        """Метаданные сериализатора ингредиента в рецепте."""
+
         model = RecipeIngredient
         fields = (
             'id',
@@ -38,6 +42,7 @@ class RecipeIngredientWriteSerializer(serializers.Serializer):
     amount = serializers.IntegerField(min_value=1)
 
     def validate_id(self, value):
+        """Проверить существование ингредиента по ID."""
         if not Ingredient.objects.filter(id=value).exists():
             raise serializers.ValidationError(
                 'Ингредиент с таким id не существует'
@@ -49,6 +54,8 @@ class RecipeMinifieldSerializer(serializers.ModelSerializer):
     """Сериализатор короткого представления рецепта."""
 
     class Meta:
+        """Метаданные сериализатора короткого представления рецепта."""
+
         model = Recipe
         fields = (
             'id',
@@ -72,6 +79,8 @@ class RecipeReadSerializer(serializers.ModelSerializer):
     is_in_shopping_cart = serializers.SerializerMethodField()
 
     class Meta:
+        """Метаданные сериализатора чтения рецепта."""
+
         model = Recipe
         fields = (
             'id',
@@ -97,9 +106,11 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         ).exists()
 
     def get_is_favorited(self, obj):
+        """Возвратить признак нахождения рецепта в избранном."""
         return self._is_in(obj, 'favorites')
 
     def get_is_in_shopping_cart(self, obj):
+        """Возвратить признак нахождения рецепта в корзине покупок."""
         return self._is_in(obj, 'shopping_cart')
 
 
@@ -117,6 +128,8 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
+        """Метаданные сериализатора создания/обновления рецепта."""
+
         model = Recipe
         fields = (
             'id',
@@ -130,6 +143,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         )
 
     def validate_ingredients(self, value):
+        """Проверить список ингредиентов на пустоту и дубликаты."""
         if not value:
             raise serializers.ValidationError(
                 'Список ингредиентов не может быть пустым.'
@@ -142,6 +156,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         return value
 
     def validate_tags(self, value):
+        """Проверить список тегов на пустоту и дубликаты."""
         if not value:
             raise serializers.ValidationError(
                 'Список тегов не может быть пустым.'
@@ -153,6 +168,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validate_data):
+        """Создать рецепт с ингредиентами и тегами."""
         ingredients = validate_data.pop('ingredients')
         tags = validate_data.pop('tags')
         recipe = Recipe.objects.create(**validate_data)
@@ -161,6 +177,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, instance, validate_data):
+        """Обновить рецепт с ингредиентами и тегами."""
         ingredients = validate_data.pop('ingredients', None)
         tags = validate_data.pop('tags', None)
 
@@ -176,6 +193,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
     @staticmethod
     def _set_ingredients(recipe, ingredients_data):
+        """Заменить ингредиенты рецепта на новые."""
         recipe.recipe_ingredients.all().delete()
         RecipeIngredient.objects.bulk_create([
             RecipeIngredient(
@@ -187,4 +205,5 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         ])
 
     def to_representation(self, instance):
+        """Возвратить полное представление рецепта."""
         return RecipeReadSerializer(instance, contex=self.context).data

@@ -1,3 +1,5 @@
+"""Модели для приложения actions."""
+
 from django.contrib.auth import get_user_model
 from django.db import models
 
@@ -23,6 +25,8 @@ class Subscription(models.Model):
     )
 
     class Meta:
+        """Метаданные модели подписки."""
+
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'
         constraints = [
@@ -37,6 +41,7 @@ class Subscription(models.Model):
         ]
 
     def __str__(self):
+        """Строковое представление подписки."""
         return f'{self.user} - {self.author}'
 
 
@@ -57,6 +62,8 @@ class Favorite(models.Model):
     )
 
     class Meta:
+        """Метаданные модели избранного."""
+
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранное'
         constraints = [
@@ -67,6 +74,7 @@ class Favorite(models.Model):
         ]
 
     def __str__(self):
+        """Строковое представление избранного."""
         return f'{self.user} - {self.recipe}'
 
 
@@ -87,6 +95,8 @@ class ShoppingCart(models.Model):
     )
 
     class Meta:
+        """Метаданные модели списка покупок."""
+
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Списки покупок'
         constraints = [
@@ -97,4 +107,5 @@ class ShoppingCart(models.Model):
         ]
 
     def __str__(self):
+        """Строковое представление списка покупок."""
         return f'{self.user} - {self.recipe}'

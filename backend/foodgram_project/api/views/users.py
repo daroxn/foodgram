@@ -1,3 +1,5 @@
+"""Представления для пользователей."""
+
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
@@ -31,6 +33,7 @@ class UserViewSet(
     queryset = User.objects.all()
 
     def get_serializer_class(self):
+        """Возвратить сериализатор в зависимости от действия."""
         if self.action == 'create':
             return UserCreateSerializer
         if self.action in ('subscriptions', 'subscribe'):
@@ -38,6 +41,7 @@ class UserViewSet(
         return UserSerializer
 
     def get_permissions(self):
+        """Возвратить права доступа в зависимости от действия."""
         if self.action in ('create', 'list', 'retrieve'):
             return (AllowAny(),)
         return (IsAuthenticated(),)
@@ -47,6 +51,7 @@ class UserViewSet(
         methods=['get']
     )
     def me(self, request):
+        """Возвратить данные текущего пользователя."""
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
 
@@ -56,6 +61,7 @@ class UserViewSet(
         url_path='me/avatar',
     )
     def avatar(self, request):
+        """Загрузить или удалить аватар текущего пользователя."""
         if request.method == 'PUT':
             serializer = SetAvatarSerializer(
                 request.user,
@@ -73,6 +79,7 @@ class UserViewSet(
         methods=['post']
     )
     def set_password(self, request):
+        """Сменить пароль текущего пользователя."""
         serializer = SetPasswordSerializer(
             data=request.data,
             context={'request': request},
@@ -89,6 +96,7 @@ class UserViewSet(
         methods=['get']
     )
     def subscriptions(self, request):
+        """Возвратить список подписок текущего пользователя."""
         queryset = User.objects.filter(subscribers__user=request.user)
         page = self.paginate_queryset(queryset)
         serializer = self.get_serializer(
@@ -103,6 +111,7 @@ class UserViewSet(
         methods=['post', 'delete']
     )
     def subscribe(self, request, pk=None):
+        """Подписаться или отписаться от пользователя."""
         author = get_object_or_404(User, pk=pk)
         if request.method == 'POST':
             if author == request.user:

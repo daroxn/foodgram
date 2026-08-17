@@ -1,33 +1,31 @@
+"""Кастомные права доступа для API."""
+
 from rest_framework import permissions
 
 
 class IsAdmin(permissions.BasePermission):
-    """
-    Предназначен для управления пользователями.
-    Доступ только администратору или суперюзеру Django.
-    """
+    """Доступ только администратору или суперюзеру."""
 
     def has_permission(self, request, view):
+        """Проверка прав на уровне запроса."""
         return request.user.is_authenticated
 
 
 class IsAdminOrReadOnly(permissions.BasePermission):
-    """
-    Предназначен для ограничения создания новых объектов проекта.
-    Чтение всем, изменение только админам.
-    """
+    """Чтение всем, изменение только администраторам."""
+
     def has_permission(self, request, view):
+        """Проверка прав на уровне запроса."""
         if request.method in permissions.SAFE_METHODS:
             return True
         return request.user.is_authenticated
 
 
 class IsAuthorOrReadOnly(permissions.BasePermission):
-    """
-    Предназначен для управления объектами проекта,
-    при условии, что автором объекта является текущий пользователь.
-    """
+    """Чтение всем, изменение только автору объекта."""
+
     def has_object_permission(self, request, view, obj):
+        """Проверка прав на уровне объекта."""
         if request.method in permissions.SAFE_METHODS:
             return True
         return obj.author == request.user

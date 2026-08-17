@@ -1,3 +1,5 @@
+"""Сериализаторы пользователей."""
+
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
@@ -13,6 +15,8 @@ class UserSerializer(serializers.ModelSerializer):
     avatar = Base64ImageField(read_only=True)
 
     class Meta:
+        """Метаданные сериализатора пользователя."""
+
         model = User
         fields = (
             'id',
@@ -25,6 +29,7 @@ class UserSerializer(serializers.ModelSerializer):
         )
 
     def get_is_subscribed(self, obj):
+        """Проверка подписки текущего пользователя на объект."""
         request = self.context.get('request')
         if not request or not request.user.is_authenticated:
             return False
@@ -37,6 +42,8 @@ class UserCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 
     class Meta:
+        """Метаданные сериализатора регистрации."""
+
         model = User
         fields = (
             'id',
@@ -48,6 +55,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
         )
 
     def create(self, validated_data):
+        """Создание пользователя с хэшированием пароля."""
         password = validated_data.pop('password')
         user = User(**validated_data)
         user.set_password(password)
@@ -62,9 +70,12 @@ class UserWithRecipesSerializer(UserSerializer):
     recipes_count = serializers.SerializerMethodField()
 
     class Meta(UserSerializer.Meta):
+        """Метаданные сериализатора пользователя с рецептами."""
+
         fields = UserSerializer.Meta.fields + ('recipes', 'recipes_count')
 
     def get_recipes(self, obj):
+        """Список рецептов пользователя с учётом лимита."""
         from api.serializers.recipes import RecipeMinifieldSerializer
 
         request = self.context.get('request')
@@ -81,6 +92,7 @@ class UserWithRecipesSerializer(UserSerializer):
         ).data
 
     def get_reсipes_count(self, obj):
+        """Количество рецептов пользователя."""
         return obj.reсipes.count()
 
 
@@ -90,6 +102,8 @@ class SetAvatarSerializer(serializers.ModelSerializer):
     avatar = Base64ImageField()
 
     class Meta:
+        """Метаданные сериализатора аватара."""
+
         model = User
         fields = ('avatar',)
 
@@ -101,6 +115,7 @@ class SetPasswordSerializer(serializers.Serializer):
     current_password = serializers.CharField()
 
     def validate_current_password(self, value):
+        """Проверка корректности текущего пароля."""
         user = self.context['request'].user
         if not user.check_password(value):
             raise serializers.ValidationError('Текущий пароль неверный.')

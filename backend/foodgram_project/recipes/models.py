@@ -20,6 +20,8 @@ class Ingredient(models.Model):
     )
 
     class Meta:
+        """Метаданные модели ингредиента."""
+
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
         ordering = ('name',)
@@ -31,6 +33,7 @@ class Ingredient(models.Model):
         ]
 
     def __str__(self):
+        """Строковое представление ингредиента."""
         return self.name
 
 
@@ -49,16 +52,19 @@ class Tag(models.Model):
     )
 
     class Meta:
+        """Метаданные модели тега."""
+
         verbose_name = 'Тег'
         verbose_name_plural = 'Теги'
         ordering = ('name',)
 
     def __str__(self):
+        """Строковое представление тега."""
         return self.name
 
 
 class Recipe(models.Model):
-    """"Модель рецепта."""
+    """Модель рецепта."""
 
     name = models.CharField(max_length=256, verbose_name='Название')
     text = models.TextField(verbose_name='Описание рецепта')
@@ -102,11 +108,14 @@ class Recipe(models.Model):
     )
 
     class Meta:
+        """Метаданные модели рецепта."""
+
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
         ordering = ('-pub_date',)
 
     def __str__(self):
+        """Строковое представление рецепта."""
         return self.name
 
 
@@ -133,6 +142,8 @@ class RecipeIngredient(models.Model):
     )
 
     class Meta:
+        """Метаданные модели ингредиента в рецепте."""
+
         verbose_name = 'Ингредиент в рецепте'
         verbose_name_plural = 'Ингредиенты в рецептах'
         constraints = [
@@ -143,4 +154,5 @@ class RecipeIngredient(models.Model):
         ]
 
     def __str__(self):
+        """Строковое представление связи рецепт-ингредиент."""
         return f'{self.ingredient} — {self.amount}'

@@ -1,3 +1,5 @@
+"""Представления для аутентификации."""
+
 from django.contrib.auth import authenticate
 from rest_framework import serializers, status
 from rest_framework.authtoken.models import Token
@@ -17,6 +19,7 @@ class EmailAuthTokenSerializer(serializers.Serializer):
     )
 
     def validate(self, attrs):
+        """Валидировать email и пароль, возвращая пользователя."""
         email = attrs.get('email')
         password = attrs.get('password')
         user = authenticate(
@@ -39,6 +42,7 @@ class CustomAuthToken(ObtainAuthToken):
     serializer_class = EmailAuthTokenSerializer
 
     def post(self, request, *args, **kwargs):
+        """Обработать запрос на получение токена."""
         serializer = self.serializer_class(
             data=request.data,
             context={'request': request}
@@ -57,5 +61,6 @@ class LogoutView(APIView):
     permission_classes = (IsAuthenticated,)
 
     def post(self, request):
+        """Удалить токен текущего пользователя."""
         request.user.auth_token.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

@@ -1,3 +1,5 @@
+"""Settings for foodgram_project."""
+
 import os
 from pathlib import Path
 

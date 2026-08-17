@@ -1,0 +1,1 @@
+"""Пакет foodgram_project."""
