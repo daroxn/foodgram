@@ -10,7 +10,7 @@ from recipes.models import Tag
 class TagViewSet(mixins.ListModelMixin,
                  mixins.RetrieveModelMixin,
                  viewsets.GenericViewSet):
-    """Вьюсет для действий над тегами"""
+    """Вьюсет для действий над тегами."""
 
     queryset = Tag.objects.all()
     serializer_class = TagSerializer

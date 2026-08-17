@@ -9,10 +9,12 @@ from api.serializers.ingredients import IngredientSerializer
 from recipes.models import Ingredient
 
 
-class IngredientViewSet(mixins.ListModelMixin,
-                 mixins.RetrieveModelMixin,
-                 viewsets.GenericViewSet):
-    """Вьюсет для действий над ингредиентами"""
+class IngredientViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
+    """Вьюсет для действий над ингредиентами."""
 
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer

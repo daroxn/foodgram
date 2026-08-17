@@ -45,7 +45,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def _add_or_remove_action(self, model, request, obj):
         """Добавить или удалить рецепт из связанного списка."""
-        recipe = get_object_or_404(Recipe, pk=pk)
+        recipe = get_object_or_404(Recipe, pk=obj)
         if request.method == 'POST':
             obj, created = model.objects.get_or_create(
                 iser=request.user, recipe=recipe

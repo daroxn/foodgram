@@ -25,10 +25,7 @@ class UserViewSet(
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet,
 ):
-    """
-    Вьюсет пользователей: регистрация, список, профиль, текущий пользователь,
-    аватар, пароль.
-    """
+    """Вьюсет пользователей: регистрация, список, профиль и др."""
 
     queryset = User.objects.all()
 

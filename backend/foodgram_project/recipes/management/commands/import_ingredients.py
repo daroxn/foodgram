@@ -1,3 +1,5 @@
+"""Команда импорта ингредиентов из JSON."""
+
 import json
 from pathlib import Path
 
@@ -32,8 +34,8 @@ class Command(BaseCommand):
             )
             return
 
-        with open(file_path, encoding='utf-8') as file:
-            data = json.load()
+        with open(file_path, encoding='utf-8') as f:
+            data = json.load(f)
 
         ingredients = [
             Ingredient(
