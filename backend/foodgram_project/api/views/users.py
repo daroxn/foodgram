@@ -54,7 +54,7 @@ class UserViewSet(
 
     @action(
         detail=False,
-        methods=['post', 'delete',],
+        methods=['put', 'delete'],
         url_path='me/avatar',
     )
     def avatar(self, request):

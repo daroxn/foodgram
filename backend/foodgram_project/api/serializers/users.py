@@ -91,9 +91,9 @@ class UserWithRecipesSerializer(UserSerializer):
             context=self.context,
         ).data
 
-    def get_reсipes_count(self, obj):
+    def get_recipes_count(self, obj):
         """Количество рецептов пользователя."""
-        return obj.reсipes.count()
+        return obj.recipes.count()
 
 
 class SetAvatarSerializer(serializers.ModelSerializer):
