@@ -88,7 +88,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
             'author',
             'ingredients',
             'is_favorited',
-            'is_in_shoppint_cart',
+            'is_in_shopping_cart',
             'name',
             'image',
             'text',
@@ -183,7 +183,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
         for attribute, value in validate_data.items():
             setattr(instance, attribute, value)
-        instance.value()
+        instance.save()
 
         if tags is not None:
             instance.tags.set(tags)
@@ -206,4 +206,4 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         """Возвратить полное представление рецепта."""
-        return RecipeReadSerializer(instance, contex=self.context).data
+        return RecipeReadSerializer(instance, context=self.context).data

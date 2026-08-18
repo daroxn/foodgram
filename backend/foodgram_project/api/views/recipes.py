@@ -26,7 +26,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.select_related(
         'author'
     ).prefetch_related(
-        'tags', 'recipe_ingredietns__ingredient'
+        'tags', 'recipe_ingredients__ingredient'
     )
     permission_classes = (IsAuthorOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
@@ -35,7 +35,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         """Возвратить сериализатор в зависимости от действия."""
-        if self.action in ('list', 'retrive'):
+        if self.action in ('list', 'retrieve'):
             return RecipeReadSerializer
         return RecipeWriteSerializer
 
@@ -48,7 +48,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe = get_object_or_404(Recipe, pk=obj)
         if request.method == 'POST':
             obj, created = model.objects.get_or_create(
-                iser=request.user, recipe=recipe
+                user=request.user, recipe=recipe
             )
             if not created:
                 return Response(
@@ -100,8 +100,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         """Сформировать и скачать файл списка покупок."""
         ingredients = (
             RecipeIngredient.objects
-            .filter(recipe__shopping__cart__user=request.user)
-            .values('ingredient_name', 'ingredient__measurement_unit')
+            .filter(recipe__shopping_cart__user=request.user)
+            .values('ingredient__name', 'ingredient__measurement_unit')
             .annotate(total=Sum('amount'))
             .order_by('ingredient__name')
         )
@@ -132,7 +132,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if not recipe.short_code:
             recipe.short_code = self._generate_short_code()
             recipe.save(update_fields=['short_code'])
-        short_link = request.build_absolute_url(f'/s/{recipe.short_code}/')
+        short_link = request.build_absolute_uri(f'/s/{recipe.short_code}/')
         return Response(
             {'short_link': short_link}
         )
@@ -146,7 +146,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         alphabet = string.ascii_letters + string.digits
         while True:
             code = ''.join(secrets.choice(alphabet) for _ in range(3))
-            if not Recipe.objects.filters(short_code=code).exists():
+            if not Recipe.objects.filter(short_code=code).exists():
                 return code
 
 
