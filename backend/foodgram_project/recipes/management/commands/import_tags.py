@@ -1,4 +1,4 @@
-"""Команда импорта ингредиентов из JSON."""
+"""Команда импорта тегов из JSON."""
 
 import json
 from pathlib import Path
@@ -6,11 +6,11 @@ from pathlib import Path
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
-from recipes.models import Ingredient
+from recipes.models import Tag
 
 
 class Command(BaseCommand):
-    """Команда для импорта ингредиентов."""
+    """Команда для импорта тегов."""
 
     def add_arguments(self, parser):
         """Добавить аргумент пути к JSON-файлу."""
@@ -18,17 +18,19 @@ class Command(BaseCommand):
             '--path',
             type=str,
             default=None,
-            help='Путь к JSON-файлу с ингредиентами.'
+            help='Путь к JSON-файлу с тегами.'
         )
 
     def handle(self, *args, **options):
-        """Импортировать ингредиенты из JSON-файла в базу данных."""
+        """Импортировать теги из JSON-файла в базу данных."""
         if options['path']:
             candidates = [Path(options['path'])]
         else:
             candidates = [
-                settings.BASE_DIR / 'data' / 'ingredients.json',
-                settings.BASE_DIR.parent.parent / 'data' / 'ingredients.json',
+                # Путь для Docker-контейнера (том смонтирован в BASE_DIR/data)
+                settings.BASE_DIR / 'data' / 'tags.json',
+                # Путь при локальном запуске из исходников репозитория
+                settings.BASE_DIR.parent.parent / 'data' / 'tags.json',
             ]
 
         file_path = next((p for p in candidates if p.exists()), None)
@@ -45,22 +47,22 @@ class Command(BaseCommand):
         with open(file_path, encoding='utf-8') as f:
             data = json.load(f)
 
-        ingredients = [
-            Ingredient(
+        tags = [
+            Tag(
                 name=item['name'],
-                measurement_unit=item['measurement_unit'],
+                slug=item['slug'],
             )
             for item in data
         ]
 
-        created = Ingredient.objects.bulk_create(
-            ingredients,
+        created = Tag.objects.bulk_create(
+            tags,
             ignore_conflicts=True
         )
 
         self.stdout.write(
             self.style.SUCCESS(
-                f'Импорт завершен. Обработано записей {len(data)}.'
+                f'Импорт завершен. Обработано записей {len(data)}. '
                 f'Добавлено новых: {len(created)}.'
             )
         )
