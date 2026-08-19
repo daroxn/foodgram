@@ -50,7 +50,7 @@ class Migration(migrations.Migration):
                 ('text', models.TextField(verbose_name='Описание рецепта')),
                 ('image', models.ImageField(upload_to='recipes/images/', verbose_name='Изображение')),
                 ('cooking_time', models.PositiveSmallIntegerField(validators=[django.core.validators.MinValueValidator(1)], verbose_name='Время приготовления (мин)')),
-                ('short_code', models.CharField(blank=True, max_length=8, null=True, unique=True, verbose_name='Короткая ссылка')),
+                ('short_code', models.CharField(blank=True, default='', max_length=8, verbose_name='Короткая ссылка')),
                 ('pub_date', models.DateTimeField(auto_now_add=True, db_index=True, verbose_name='Дата публикации')),
                 ('author', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='recipes', to=settings.AUTH_USER_MODEL, verbose_name='Автор')),
             ],
@@ -59,6 +59,10 @@ class Migration(migrations.Migration):
                 'verbose_name_plural': 'Рецепты',
                 'ordering': ('-pub_date',),
             },
+        ),
+        migrations.AddConstraint(
+            model_name='recipe',
+            constraint=models.UniqueConstraint(condition=~models.Q(('short_code', '')), fields=('short_code',), name='unique_non_empty_short_code'),
         ),
         migrations.CreateModel(
             name='RecipeIngredient',

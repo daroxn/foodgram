@@ -1,6 +1,8 @@
 """Представления для рецептов."""
 
-from django.db.models import Sum
+import secrets
+
+from django.db.models import Exists, OuterRef, Sum, Value
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django_filters.rest_framework import DjangoFilterBackend
@@ -11,27 +13,49 @@ from rest_framework.response import Response
 
 from api.filters import RecipeFilter
 from api.permissions import IsAuthorOrReadOnly
+from api.serializers.actions import FavoriteSerializer, ShoppingCartSerializer
 from api.serializers.recipes import (
-    RecipeMinifieldSerializer,
     RecipeReadSerializer,
     RecipeWriteSerializer,
 )
 from actions.models import Favorite, ShoppingCart
+from constants import SHORT_CODE_ALPHABET, SHORT_CODE_LENGTH
 from recipes.models import Recipe, RecipeIngredient
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
     """Вьюсет для рецепта."""
 
-    queryset = Recipe.objects.select_related(
-        'author'
-    ).prefetch_related(
-        'tags', 'recipe_ingredients__ingredient'
-    )
     permission_classes = (IsAuthorOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
     http_method_names = ('get', 'post', 'patch', 'delete')
+
+    def get_queryset(self):
+        """Возвратить queryset рецептов с аннотациями пользователя."""
+        queryset = Recipe.objects.select_related(
+            'author'
+        ).prefetch_related(
+            'tags', 'recipe_ingredients__ingredient'
+        )
+        user = self.request.user
+        if not user.is_authenticated:
+            return queryset.annotate(
+                is_favorited=Value(False),
+                is_in_shopping_cart=Value(False),
+            )
+        return queryset.annotate(
+            is_favorited=Exists(
+                Favorite.objects.filter(
+                    user=user, recipe=OuterRef('pk')
+                )
+            ),
+            is_in_shopping_cart=Exists(
+                ShoppingCart.objects.filter(
+                    user=user, recipe=OuterRef('pk')
+                )
+            ),
+        )
 
     def get_serializer_class(self):
         """Возвратить сериализатор в зависимости от действия."""
@@ -43,26 +67,20 @@ class RecipeViewSet(viewsets.ModelViewSet):
         """Сохранить рецепт с автором из запроса."""
         serializer.save(author=self.request.user)
 
-    def _add_or_remove_action(self, model, request, obj):
-        """Добавить или удалить рецепт из связанного списка."""
-        recipe = get_object_or_404(Recipe, pk=obj)
-        if request.method == 'POST':
-            obj, created = model.objects.get_or_create(
-                user=request.user, recipe=recipe
-            )
-            if not created:
-                return Response(
-                    {'errors': 'Рецепт уже добавлен'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            serializer = RecipeMinifieldSerializer(
-                recipe, context={'request': request}
-            )
-            return Response(
-                serializer.data,
-                status=status.HTTP_201_CREATED
-            )
+    def _add_action(self, serializer_class, request, pk):
+        """Добавить рецепт в связанный список через сериализатор."""
+        recipe = get_object_or_404(Recipe, pk=pk)
+        serializer = serializer_class(
+            data={'recipe': recipe.pk},
+            context={'request': request},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    def _remove_action(self, model, request, pk):
+        """Удалить рецепт из связанного списка."""
+        recipe = get_object_or_404(Recipe, pk=pk)
         deleted, _ = model.objects.filter(
             user=request.user, recipe=recipe
         ).delete()
@@ -80,7 +98,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def favorite(self, request, pk=None):
         """Добавить или удалить рецепт из избранного."""
-        return self._add_or_remove_action(Favorite, request, pk)
+        if request.method == 'POST':
+            return self._add_action(FavoriteSerializer, request, pk)
+        return self._remove_action(Favorite, request, pk)
 
     @action(
         detail=True,
@@ -89,7 +109,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def shopping_cart(self, request, pk=None):
         """Добавить или удалить рецепт из корзины покупок."""
-        return self._add_or_remove_action(ShoppingCart, request, pk)
+        if request.method == 'POST':
+            return self._add_action(ShoppingCartSerializer, request, pk)
+        return self._remove_action(ShoppingCart, request, pk)
 
     @action(
         detail=False,
@@ -98,9 +120,21 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def download_shopping_cart(self, request):
         """Сформировать и скачать файл списка покупок."""
+        content = self._build_shopping_list(request.user)
+        response = HttpResponse(
+            content, content_type='text/plain; charset=utf-8'
+        )
+        response['Content-Disposition'] = (
+            'attachment; filename="shopping_list.txt"'
+        )
+        return response
+
+    @staticmethod
+    def _build_shopping_list(user):
+        """Собрать текст списка покупок для пользователя."""
         ingredients = (
             RecipeIngredient.objects
-            .filter(recipe__shopping_cart__user=request.user)
+            .filter(recipe__shopping_cart__user=user)
             .values('ingredient__name', 'ingredient__measurement_unit')
             .annotate(total=Sum('amount'))
             .order_by('ingredient__name')
@@ -112,14 +146,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 f"({item['ingredient__measurement_unit']}) — "
                 f"{item['total']}"
             )
-        content = '\n'.join(lines)
-        response = HttpResponse(
-            content, content_type='text/plain; charset=utf-8'
-        )
-        response['Content-Disposition'] = (
-            'attachment; filename="shopping_list.txt"'
-        )
-        return response
+        return '\n'.join(lines)
 
     @action(
         detail=True,
@@ -139,13 +166,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @staticmethod
     def _generate_short_code():
-        """Сгенерировать уникальный короткий код из трёх символов."""
-        import secrets
-        import string
-
-        alphabet = string.ascii_letters + string.digits
+        """Сгенерировать уникальный короткий код."""
         while True:
-            code = ''.join(secrets.choice(alphabet) for _ in range(3))
+            code = ''.join(
+                secrets.choice(SHORT_CODE_ALPHABET)
+                for _ in range(SHORT_CODE_LENGTH)
+            )
             if not Recipe.objects.filter(short_code=code).exists():
                 return code
 

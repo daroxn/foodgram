@@ -5,6 +5,7 @@ from rest_framework import serializers
 from api.serializers.fields import Base64ImageField
 from api.serializers.tags import TagSerializer
 from api.serializers.users import UserSerializer
+from constants import MIN_INGREDIENT_AMOUNT
 from recipes.models import (
     Ingredient,
     Recipe,
@@ -39,7 +40,7 @@ class RecipeIngredientWriteSerializer(serializers.Serializer):
     """Сериализатор ингредиента при создании/обновлении рецепта."""
 
     id = serializers.IntegerField()
-    amount = serializers.IntegerField(min_value=1)
+    amount = serializers.IntegerField(min_value=MIN_INGREDIENT_AMOUNT)
 
     def validate_id(self, value):
         """Проверить существование ингредиента по ID."""
@@ -75,8 +76,10 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         read_only=True,
         many=True,
     )
-    is_favorited = serializers.SerializerMethodField()
-    is_in_shopping_cart = serializers.SerializerMethodField()
+    is_favorited = serializers.BooleanField(read_only=True, default=False)
+    is_in_shopping_cart = serializers.BooleanField(
+        read_only=True, default=False
+    )
 
     class Meta:
         """Метаданные сериализатора чтения рецепта."""
@@ -94,24 +97,6 @@ class RecipeReadSerializer(serializers.ModelSerializer):
             'text',
             'cooking_time',
         )
-
-    def _is_in(self, obj, related_name):
-        """Проверяет, связан ли рецепт с текущим Пользователем."""
-        request = self.context.get('request')
-
-        if not request or not request.user.is_authenticated:
-            return False
-        return getattr(obj, related_name).filter(
-            user=request.user
-        ).exists()
-
-    def get_is_favorited(self, obj):
-        """Возвратить признак нахождения рецепта в избранном."""
-        return self._is_in(obj, 'favorites')
-
-    def get_is_in_shopping_cart(self, obj):
-        """Возвратить признак нахождения рецепта в корзине покупок."""
-        return self._is_in(obj, 'shopping_cart')
 
 
 class RecipeWriteSerializer(serializers.ModelSerializer):
@@ -172,8 +157,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         ingredients = validate_data.pop('ingredients')
         tags = validate_data.pop('tags')
         recipe = Recipe.objects.create(**validate_data)
-        recipe.tags.set(tags)
-        self._set_ingredients(recipe, ingredients)
+        self._set_tags_and_ingredients(recipe, tags, ingredients)
         return recipe
 
     def update(self, instance, validate_data):
@@ -181,28 +165,26 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         ingredients = validate_data.pop('ingredients', None)
         tags = validate_data.pop('tags', None)
 
-        for attribute, value in validate_data.items():
-            setattr(instance, attribute, value)
-        instance.save()
+        instance = super().update(instance, validate_data)
 
-        if tags is not None:
-            instance.tags.set(tags)
-        if ingredients is not None:
-            self._set_ingredients(instance, ingredients)
+        self._set_tags_and_ingredients(instance, tags, ingredients)
         return instance
 
     @staticmethod
-    def _set_ingredients(recipe, ingredients_data):
-        """Заменить ингредиенты рецепта на новые."""
-        recipe.recipe_ingredients.all().delete()
-        RecipeIngredient.objects.bulk_create([
-            RecipeIngredient(
-                recipe=recipe,
-                ingredient=Ingredient.objects.get(id=item['id']),
-                amount=item['amount'],
-            )
-            for item in ingredients_data
-        ])
+    def _set_tags_and_ingredients(recipe, tags, ingredients_data):
+        """Заменить теги и ингредиенты рецепта на новые."""
+        if tags is not None:
+            recipe.tags.set(tags)
+        if ingredients_data is not None:
+            recipe.recipe_ingredients.all().delete()
+            RecipeIngredient.objects.bulk_create([
+                RecipeIngredient(
+                    recipe=recipe,
+                    ingredient=Ingredient.objects.get(id=item['id']),
+                    amount=item['amount'],
+                )
+                for item in ingredients_data
+            ])
 
     def to_representation(self, instance):
         """Возвратить полное представление рецепта."""

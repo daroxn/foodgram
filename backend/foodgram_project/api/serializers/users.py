@@ -67,7 +67,7 @@ class UserWithRecipesSerializer(UserSerializer):
     """Сериализатор Пользователя с рецептами."""
 
     recipes = serializers.SerializerMethodField()
-    recipes_count = serializers.SerializerMethodField()
+    recipes_count = serializers.IntegerField(read_only=True, default=0)
 
     class Meta(UserSerializer.Meta):
         """Метаданные сериализатора пользователя с рецептами."""
@@ -90,10 +90,6 @@ class UserWithRecipesSerializer(UserSerializer):
             many=True,
             context=self.context,
         ).data
-
-    def get_recipes_count(self, obj):
-        """Количество рецептов пользователя."""
-        return obj.recipes.count()
 
 
 class SetAvatarSerializer(serializers.ModelSerializer):

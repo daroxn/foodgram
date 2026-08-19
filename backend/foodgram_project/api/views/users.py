@@ -1,6 +1,7 @@
 """Представления для пользователей."""
 
 from django.contrib.auth import get_user_model
+from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
@@ -8,6 +9,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from actions.models import Subscription
+from api.serializers.actions import SubscriptionSerializer
 from api.serializers.users import (
     SetAvatarSerializer,
     SetPasswordSerializer,
@@ -94,7 +96,9 @@ class UserViewSet(
     )
     def subscriptions(self, request):
         """Возвратить список подписок текущего пользователя."""
-        queryset = User.objects.filter(subscribers__user=request.user)
+        queryset = User.objects.filter(
+            subscribers__user=request.user
+        ).annotate(recipes_count=Count('recipes'))
         page = self.paginate_queryset(queryset)
         serializer = self.get_serializer(
             page,
@@ -111,23 +115,12 @@ class UserViewSet(
         """Подписаться или отписаться от пользователя."""
         author = get_object_or_404(User, pk=pk)
         if request.method == 'POST':
-            if author == request.user:
-                return Response(
-                    {'errors': 'Нельзя подписаться на самого себя.'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            obj, created = Subscription.objects.get_or_create(
-                user=request.user, author=author
+            serializer = SubscriptionSerializer(
+                data={'author': author.pk},
+                context={'request': request},
             )
-            if not created:
-                return Response(
-                    {'errors': 'Вы уже подписаны на этого пользователя.'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            serializer = UserWithRecipesSerializer(
-                author,
-                context={'request': request}
-            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         deleted, _ = Subscription.objects.filter(

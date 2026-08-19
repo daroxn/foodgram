@@ -41,7 +41,6 @@ class Subscription(models.Model):
         ]
 
     def __str__(self):
-        """Строковое представление подписки."""
         return f'{self.user} - {self.author}'
 
 
@@ -74,7 +73,6 @@ class Favorite(models.Model):
         ]
 
     def __str__(self):
-        """Строковое представление избранного."""
         return f'{self.user} - {self.recipe}'
 
 
@@ -107,5 +105,4 @@ class ShoppingCart(models.Model):
         ]
 
     def __str__(self):
-        """Строковое представление списка покупок."""
         return f'{self.user} - {self.recipe}'

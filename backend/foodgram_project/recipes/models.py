@@ -4,6 +4,17 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from django.core.validators import MinValueValidator
 
+from constants import (
+    INGREDIENT_NAME_MAX_LENGTH,
+    MEASUREMENT_UNIT_MAX_LENGTH,
+    MIN_COOKING_TIME,
+    MIN_INGREDIENT_AMOUNT,
+    RECIPE_NAME_MAX_LENGTH,
+    SHORT_CODE_MAX_LENGTH,
+    TAG_NAME_MAX_LENGTH,
+    TAG_SLUG_MAX_LENGTH,
+)
+
 User = get_user_model()
 
 
@@ -11,11 +22,11 @@ class Ingredient(models.Model):
     """Модель ингредиента для рецепта."""
 
     name = models.CharField(
-        max_length=128,
+        max_length=INGREDIENT_NAME_MAX_LENGTH,
         verbose_name='Название',
     )
     measurement_unit = models.CharField(
-        max_length=64,
+        max_length=MEASUREMENT_UNIT_MAX_LENGTH,
         verbose_name='Единица измерения',
     )
 
@@ -33,7 +44,6 @@ class Ingredient(models.Model):
         ]
 
     def __str__(self):
-        """Строковое представление ингредиента."""
         return self.name
 
 
@@ -41,12 +51,12 @@ class Tag(models.Model):
     """Модель тега для рецепта."""
 
     name = models.CharField(
-        max_length=32,
+        max_length=TAG_NAME_MAX_LENGTH,
         unique=True,
         verbose_name='Название',
     )
     slug = models.SlugField(
-        max_length=32,
+        max_length=TAG_SLUG_MAX_LENGTH,
         unique=True,
         verbose_name='Категория',
     )
@@ -59,14 +69,15 @@ class Tag(models.Model):
         ordering = ('name',)
 
     def __str__(self):
-        """Строковое представление тега."""
         return self.name
 
 
 class Recipe(models.Model):
     """Модель рецепта."""
 
-    name = models.CharField(max_length=256, verbose_name='Название')
+    name = models.CharField(
+        max_length=RECIPE_NAME_MAX_LENGTH, verbose_name='Название'
+    )
     text = models.TextField(verbose_name='Описание рецепта')
     author = models.ForeignKey(
         User, on_delete=models.CASCADE,
@@ -79,7 +90,7 @@ class Recipe(models.Model):
     )
     cooking_time = models.PositiveSmallIntegerField(
         validators=[
-            MinValueValidator(1),
+            MinValueValidator(MIN_COOKING_TIME),
         ],
         verbose_name='Время приготовления (мин)',
     )
@@ -95,10 +106,9 @@ class Recipe(models.Model):
         verbose_name='Теги',
     )
     short_code = models.CharField(
-        max_length=8,
-        unique=True,
-        null=True,
+        max_length=SHORT_CODE_MAX_LENGTH,
         blank=True,
+        default='',
         verbose_name='Короткая ссылка',
     )
     pub_date = models.DateTimeField(
@@ -113,9 +123,15 @@ class Recipe(models.Model):
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
         ordering = ('-pub_date',)
+        constraints = [
+            models.UniqueConstraint(
+                fields=('short_code',),
+                condition=~models.Q(short_code=''),
+                name='unique_non_empty_short_code',
+            ),
+        ]
 
     def __str__(self):
-        """Строковое представление рецепта."""
         return self.name
 
 
@@ -136,7 +152,7 @@ class RecipeIngredient(models.Model):
     )
     amount = models.PositiveSmallIntegerField(
         validators=[
-            MinValueValidator(1)
+            MinValueValidator(MIN_INGREDIENT_AMOUNT)
         ],
         verbose_name='Количество',
     )
@@ -154,5 +170,4 @@ class RecipeIngredient(models.Model):
         ]
 
     def __str__(self):
-        """Строковое представление связи рецепт-ингредиент."""
         return f'{self.ingredient} — {self.amount}'
