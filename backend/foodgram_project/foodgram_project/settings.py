@@ -5,7 +5,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from constants import PAGE_SIZE
+from foodgram_project.constants import PAGE_SIZE
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 

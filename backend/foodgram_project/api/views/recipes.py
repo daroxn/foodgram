@@ -19,7 +19,10 @@ from api.serializers.recipes import (
     RecipeWriteSerializer,
 )
 from actions.models import Favorite, ShoppingCart
-from constants import SHORT_CODE_ALPHABET, SHORT_CODE_LENGTH
+from foodgram_project.constants import (
+    SHORT_CODE_ALPHABET,
+    SHORT_CODE_LENGTH,
+)
 from recipes.models import Recipe, RecipeIngredient
 
 

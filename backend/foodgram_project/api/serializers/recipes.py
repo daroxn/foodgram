@@ -5,7 +5,7 @@ from rest_framework import serializers
 from api.serializers.fields import Base64ImageField
 from api.serializers.tags import TagSerializer
 from api.serializers.users import UserSerializer
-from constants import MIN_INGREDIENT_AMOUNT
+from foodgram_project.constants import MIN_INGREDIENT_AMOUNT
 from recipes.models import (
     Ingredient,
     Recipe,
@@ -152,39 +152,41 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             )
         return value
 
-    def create(self, validate_data):
+    def create(self, validated_data):
         """Создать рецепт с ингредиентами и тегами."""
-        ingredients = validate_data.pop('ingredients')
-        tags = validate_data.pop('tags')
-        recipe = Recipe.objects.create(**validate_data)
+        ingredients, tags = self._pop_ingredients_and_tags(validated_data)
+        recipe = Recipe.objects.create(**validated_data)
         self._set_tags_and_ingredients(recipe, tags, ingredients)
         return recipe
 
-    def update(self, instance, validate_data):
+    def update(self, instance, validated_data):
         """Обновить рецепт с ингредиентами и тегами."""
-        ingredients = validate_data.pop('ingredients', None)
-        tags = validate_data.pop('tags', None)
-
-        instance = super().update(instance, validate_data)
-
+        ingredients, tags = self._pop_ingredients_and_tags(validated_data)
+        instance = super().update(instance, validated_data)
         self._set_tags_and_ingredients(instance, tags, ingredients)
         return instance
 
     @staticmethod
+    def _pop_ingredients_and_tags(validated_data):
+        """Извлечь из данных списки ингредиентов и тегов."""
+        return (
+            validated_data.pop('ingredients'),
+            validated_data.pop('tags'),
+        )
+
+    @staticmethod
     def _set_tags_and_ingredients(recipe, tags, ingredients_data):
         """Заменить теги и ингредиенты рецепта на новые."""
-        if tags is not None:
-            recipe.tags.set(tags)
-        if ingredients_data is not None:
-            recipe.recipe_ingredients.all().delete()
-            RecipeIngredient.objects.bulk_create([
-                RecipeIngredient(
-                    recipe=recipe,
-                    ingredient=Ingredient.objects.get(id=item['id']),
-                    amount=item['amount'],
-                )
-                for item in ingredients_data
-            ])
+        recipe.tags.set(tags)
+        recipe.recipe_ingredients.all().delete()
+        RecipeIngredient.objects.bulk_create([
+            RecipeIngredient(
+                recipe=recipe,
+                ingredient=Ingredient.objects.get(id=item['id']),
+                amount=item['amount'],
+            )
+            for item in ingredients_data
+        ])
 
     def to_representation(self, instance):
         """Возвратить полное представление рецепта."""

@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from django.core.validators import MinValueValidator
 
-from constants import (
+from foodgram_project.constants import (
     INGREDIENT_NAME_MAX_LENGTH,
     MEASUREMENT_UNIT_MAX_LENGTH,
     MIN_COOKING_TIME,
