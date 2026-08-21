@@ -91,6 +91,8 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
+            sudo systemctl enable docker.service
+            sudo systemctl enable containerd.service
             cd ${{ secrets.PROJECT_PATH }}
             git pull
             cd infra

@@ -8,6 +8,7 @@ services:
   db:
     container_name: foodgram-db
     image: postgres:14-alpine
+    restart: always
     env_file: ../.env
     volumes:
       - pg_data:/var/lib/postgresql/data
@@ -20,6 +21,7 @@ services:
   backend:
     container_name: foodgram_backend
     image: ${DOCKER_USERNAME}/foodgram_backend:latest
+    restart: always
     env_file: ../.env
     volumes:
       - static:/app/collected_static/
@@ -38,6 +40,7 @@ services:
   frontend:
     container_name: foodgram_frontend
     image: ${DOCKER_USERNAME}/foodgram_frontend:latest
+    restart: always
     volumes:
       - ../frontend/build:/app/result_build/
 
