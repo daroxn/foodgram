@@ -22,7 +22,13 @@ class IsAdminOrReadOnly(permissions.BasePermission):
 
 
 class IsAuthorOrReadOnly(permissions.BasePermission):
-    """Чтение всем, изменение только автору объекта."""
+    """Чтение всем, изменение автору объекта, создание — авторизованным."""
+
+    def has_permission(self, request, view):
+        """Проверка прав на уровне запроса."""
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return request.user.is_authenticated
 
     def has_object_permission(self, request, view, obj):
         """Проверка прав на уровне объекта."""

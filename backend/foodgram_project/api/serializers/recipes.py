@@ -102,10 +102,13 @@ class RecipeReadSerializer(serializers.ModelSerializer):
 class RecipeWriteSerializer(serializers.ModelSerializer):
     """Сериализатор создания/обновления рецепта."""
 
-    ingredients = RecipeIngredientWriteSerializer(many=True)
+    ingredients = RecipeIngredientWriteSerializer(
+        many=True, required=True
+    )
     tags = serializers.PrimaryKeyRelatedField(
         queryset=Tag.objects.all(),
-        many=True
+        many=True,
+        required=True,
     )
     image = Base64ImageField(required=True)
     author = serializers.HiddenField(
@@ -126,6 +129,19 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             'tags',
             'author',
         )
+
+    def validate(self, attrs):
+        """Проверить наличие обязательных полей при частичном обновлении."""
+        if self.partial:
+            if 'ingredients' not in self.initial_data:
+                raise serializers.ValidationError(
+                    {'ingredients': 'Это поле обязательно.'}
+                )
+            if 'tags' not in self.initial_data:
+                raise serializers.ValidationError(
+                    {'tags': 'Это поле обязательно.'}
+                )
+        return attrs
 
     def validate_ingredients(self, value):
         """Проверить список ингредиентов на пустоту и дубликаты."""

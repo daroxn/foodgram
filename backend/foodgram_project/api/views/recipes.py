@@ -164,7 +164,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             recipe.save(update_fields=['short_code'])
         short_link = request.build_absolute_uri(f'/s/{recipe.short_code}/')
         return Response(
-            {'short_link': short_link}
+            {'short-link': short_link}
         )
 
     @staticmethod
