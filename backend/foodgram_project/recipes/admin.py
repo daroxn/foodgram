@@ -1,6 +1,8 @@
 """Настройки админки для приложения recipes."""
 
+from admin_auto_filters.filters import AutocompleteFilterFactory
 from django.contrib import admin
+from django.db.models import Count, Prefetch
 
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
 
@@ -22,6 +24,7 @@ class IngredientAdmin(admin.ModelAdmin):
         'name',
         'measurement_unit'
     )
+    list_display_links = ('name',)
     list_filter = ('measurement_unit',)
     search_fields = ('name',)
 
@@ -35,6 +38,7 @@ class TagAdmin(admin.ModelAdmin):
         'name',
         'slug'
     )
+    list_display_links = ('name', 'slug')
     search_fields = ('name', 'slug')
     prepopulated_fields = {'slug': ('name',)}
 
@@ -50,16 +54,30 @@ class RecipeAdmin(admin.ModelAdmin):
         'pub_date',
         'favorites_count'
     )
-    search_fields = (
-        'name',
-        'author__username',
-        'author__email'
+    list_display_links = ('name', 'author')
+    search_fields = ('name',)
+    list_filter = (
+        AutocompleteFilterFactory('Автор', 'author'),
+        AutocompleteFilterFactory('Тег', 'tags'),
+        'pub_date',
     )
-    list_filter = ('tags', 'pub_date')
     inlines = (RecipeIngredientImage,)
     readonly_fields = ('favorites_count',)
 
-    @admin.display(description='В избранном (раз)')
+    def get_queryset(self, request):
+        """Оптимизация запросов для списка рецептов в админке."""
+        queryset = super().get_queryset(request)
+        return queryset.select_related('author').prefetch_related(
+            'tags',
+            Prefetch(
+                'recipe_ingredients',
+                queryset=RecipeIngredient.objects.select_related(
+                    'ingredient'
+                ),
+            ),
+        ).annotate(favorites_count=Count('favorites', distinct=True))
+
+    @admin.display(description='В избранном (раз)', ordering='favorites_count')
     def favorites_count(self, obj):
         """Число добавлений рецепта в избранное."""
-        return obj.favorites_count()
+        return obj.favorites_count

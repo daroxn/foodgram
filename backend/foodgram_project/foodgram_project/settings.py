@@ -29,6 +29,7 @@ CSRF_TRUSTED_ORIGINS = os.getenv(
 
 INSTALLED_APPS = [
     'django.contrib.admin',
+    'admin_auto_filters',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django_filters',

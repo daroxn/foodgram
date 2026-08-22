@@ -18,6 +18,7 @@ class CustomUserAdmin(UserAdmin):
         'last_name',
         'is_staff',
     )
+    list_display_links = ('email', 'username')
     list_filter = (
         'is_staff',
         'is_superuser',
